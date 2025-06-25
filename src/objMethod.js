@@ -1,9 +1,9 @@
-const user = {
-  name: "Aditi",
-  age: 25,
-  greet() {
-    console.log("Hi, I am " + this.name);
+const product = {
+  title: "Smartphone",
+  price: 19999,
+  displayDetails: () => {
+    console.log("Product: " + this.title + ", Price: ₹" + this.price);
   }
 };
 
-user.greet();
+product.displayDetails();
