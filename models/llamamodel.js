@@ -136,8 +136,6 @@ ${message}
   }
 }
 
-
-
   else {
     userPrompt = message;
   }
