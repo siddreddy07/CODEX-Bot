@@ -5,6 +5,15 @@ dotenv.config();
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+import { execSync } from 'child_process';
+
+function extractFileAndLine(errorMessage) {
+  const match = errorMessage.match(/at\s+\w+\s+\(([^:]+):(\d+):\d+\)/);
+  if (!match) return null;
+  return { file: match[1], line: Number(match[2]) };
+}
+
+
 export async function genAI({ type, code, message }) {
   const now = new Date();
   const timestamp = `${now.toLocaleDateString()} - ${now.toLocaleTimeString()}`;
@@ -44,6 +53,8 @@ You are CodexBot — a smart CLI assistant for developers.
 - { "action": "exit" }                              ← For quit, bye, etc.
 - { "action": "help" }                              ← For “what can you do?”
 - { "action": "chat" }                              ← For normal chat - but don't forget wht u actually are wht are u designed for based on this entire content 
+- { "action": "analyzeError", "error": "..." } ← for runtime errors
+
 
 📌 Rules:
 - Use "gitCommand" if the user asks:
@@ -75,11 +86,56 @@ User: show memory
 User: what can you do?  
 { "action": "help" }
 
+User: error occured / bug occured
+{"action": "analyzeError", "error": "..."}
+
 User: ${message}
 `.trim();
 
 
 }
+
+else if (type === 'analyzeError') {
+  const { file, line } = extractFileAndLine(message) || {};
+  if (!file || !line) {
+    userPrompt = `A user reported this error:\n\n${message}\n\n👉 Please explain:
+- What does this error mean?
+- What might be the cause?
+- Suggest a possible fix.`;
+  } else {
+    let blame = '', diff = '';
+    try {
+      blame = execSync(`git blame -L ${line},${line} ${file}`, { encoding: 'utf-8' });
+      diff = execSync(`git diff origin/main..HEAD -- ${file}`, { encoding: 'utf-8' });
+    } catch (err) {
+      blame = "❌ Could not retrieve blame.";
+      diff = "❌ Could not retrieve diff.";
+    }
+
+    userPrompt = `
+A user reported a runtime error. Help debug it step-by-step.
+
+📄 File: ${file}
+📍 Line: ${line}
+
+🧠 Git Blame (who wrote it):
+${blame}
+
+🔍 Git Diff (recent changes in this file):
+${diff}
+
+🧪 Error:
+${message}
+
+👉 Please explain:
+1. What the error means
+2. Who might have caused it
+3. What changed recently in this area
+4. Suggest a fix in clear JS code
+`.trim();
+  }
+}
+
 
 
   else {

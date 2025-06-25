@@ -1,6 +1,6 @@
-function hello() {
-    console.log('Hello From New World')
+function showCurrentTime() {
+  const now = new Date();
+  console.log(`⏰ Current Time: ${now.toLocaleString()}`);
 }
 
-
-hello()
+showCurrentTime();

@@ -20,7 +20,7 @@ console.log('Type something like: "generate docs for ./src", "show status", "hel
 rl.prompt();
 
 rl.on('line', async (input) => {
-  const { action, folder, command } = await genAI({ type: 'intent', message: input });
+  const { action, folder, command,error } = await genAI({ type: 'intent', message: input });
 
   switch (action) {
     case 'exit':
@@ -64,16 +64,38 @@ rl.on('line', async (input) => {
       break;
 
       case 'gitCommand':
+  try {
+    const { execSync } = await import('child_process');
+    const output = execSync(folder || command, { encoding: 'utf-8' });
+
+    // 👇 Send Git output back to AI for a natural summary
+    const analysis = await genAI({
+      message: `Analyze this Git output and respond naturally. The original user query was: "${input}"
+
+Git Output:
+${output}`
+    });
+
+    console.log("AI:", analysis);
+  } catch (err) {
+    console.log("AI: ⚠️ Git command failed:", command);
+  }
+  break;
+
         try{
           const {execSync} = await import ('child_process');
           const output = execSync(folder || command, { encoding: 'utf-8' })
-          console.log(output)
           console.log("AI:\n" + output);
         }
         catch (err){
            console.log("AI: ⚠️ Git command failed:",command);
         }
         break;
+
+          case 'analyzeError':
+    const errorReply = await genAI({ type: 'analyzeError', message: error || input });
+    console.log("AI:", errorReply);
+    break;        
 
       case 'chat':
     default:
